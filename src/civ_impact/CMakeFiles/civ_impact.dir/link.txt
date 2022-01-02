@@ -1,1 +1,0 @@
-/usr/bin/c++  -fopenmp -fopenmp -g -rdynamic CMakeFiles/civ_impact.dir/main.cpp.o -o civ_impact  ../../third_party/opennn/opennn/libopennn.a 

@@ -4,3 +4,6 @@ CPackConfig.cmake
 CPackSourceConfig.cmake
 cmake_install.cmake
 Makefile
+**/progress.marks
+**/civ_impact
+**/CMakeFiles

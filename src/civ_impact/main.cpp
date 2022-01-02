@@ -1,23 +1,10 @@
-//   OpenNN: Open Neural Networks Library
-//   www.opennn.net
-//
-//   S I M P L E   F U N C T I O N   R E G R E S S I O N   A P P L I C A T I O N
-//
-//   Artificial Intelligence Techniques SL (Artelnics)
-//   artelnics@artelnics.com
-
-// System includes
-
 #include <cstring>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <time.h>
-
 #include <omp.h>
-
-// OpenNN includes
 
 #include "opennn/opennn/opennn.h"
 
@@ -30,93 +17,99 @@ static std::string GetCWD()
 }
 
 using namespace OpenNN;
-using namespace std;
 using namespace Eigen;
 
-int main(void)
+static void PrintColumnInfo(const Tensor<DataSet::Column, 1>& columns)
 {
-    try
-    {
-        cout << "Computing Civilizational Impact." << endl;
+  for (Index i = 0; i < columns.size(); i++)
+  {
+    std::cout << "Column " << i << ": "         << std::endl;
+    std::cout << "   Name: " << columns(i).name << std::endl;
 
-        srand(static_cast<unsigned>(time(nullptr)));
-
-        // Data set
-        std::string datapath = GetCWD() + "/data/civ_impact_data.csv";
-        DataSet data_set(datapath, ';', true);
-
-        data_set.split_samples_random();
-
-        const Index input_variables_number = data_set.get_input_variables_number();
-
-        const Index target_variables_number = data_set.get_target_variables_number();
-
-        Tensor<string, 1> scaling_inputs_methods(input_variables_number);
-
-        Tensor<string, 1> scaling_targets_methods(target_variables_number);
-
-        scaling_inputs_methods.setConstant("MinimumMaximum");
-
-        scaling_targets_methods.setConstant("MinimumMaximum");
-
-        const Tensor<Descriptives, 1> inputs_descriptives = data_set.scale_input_variables(scaling_inputs_methods);
-
-        const Tensor<Descriptives, 1> targets_descriptives = data_set.scale_target_variables(scaling_inputs_methods);
-
-        // Neural network
-
-        Tensor<Index, 1> neural_network_architecture(3);
-
-        neural_network_architecture.setValues({1, 3, 1});
-
-        NeuralNetwork neural_network(NeuralNetwork::Approximation, neural_network_architecture);
-
-        // Training strategy
-
-        TrainingStrategy training_strategy(&neural_network, &data_set);
-
-        training_strategy.set_loss_method(TrainingStrategy::MEAN_SQUARED_ERROR);
-
-        training_strategy.set_optimization_method(TrainingStrategy::ADAPTIVE_MOMENT_ESTIMATION);
-
-        training_strategy.get_loss_index_pointer()->set_regularization_method("NO_REGULARIZATION");
-
-        training_strategy.get_adaptive_moment_estimation_pointer()->set_display_period(100);
-
-        training_strategy.perform_training();
-
-        data_set.unscale_input_variables(scaling_inputs_methods, inputs_descriptives);
-
-        data_set.unscale_target_variables(scaling_targets_methods, targets_descriptives);
-
-        neural_network.save_expression_python("simple_function_regresion.py");
-
-        cout<<"Bye Simple Function Regression"<<endl;
-
-        return 0;
-    }
-    catch(exception& e)
-    {
-        cerr << e.what() << endl;
-
-        return 1;
-    }
+    if (columns(i).column_use == OpenNN::DataSet::VariableUse::Input)
+      std::cout << "   Use: input" << std::endl;
+    else
+    if (columns(i).column_use == OpenNN::DataSet::VariableUse::Target)
+      std::cout << "   Use: target" << std::endl;
+    else
+    if (columns(i).column_use == OpenNN::DataSet::VariableUse::UnusedVariable)
+      std::cout << "   Use: unused" << std::endl;
+    if (columns(i).type == OpenNN::DataSet::ColumnType::Categorical)
+      std::cout << "   Categories: " << columns(i).categories << std::endl;
+    std::cout << std::endl;
+  }
 }
 
+static void PrintDataset(const DataSet& data_set)
+{
+  std::cout << "Input variables number: "  << data_set.get_target_variables_number() << std::endl;
+  std::cout << "Target variables number: " << data_set.get_target_variables_number() << std::endl;
+}
 
-// OpenNN: Open Neural Networks Library.
-// Copyright (C) 2005-2019 Artificial Intelligence Techniques SL
-//
-// This library is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 2.1 of the License, or any later version.
-//
-// This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// Lesser General Public License for more details.
+int main(int argc, char** argv)
+{
+  try
+  {
+    std::cout << "Computing Civilizational Impact." << std::endl;
 
-// You should have received a copy of the GNU Lesser General Public
-// License along with this library; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+    std::string datapath = GetCWD() + "/data/civ_impact_data.csv";
+    DataSet     data_set(datapath, ',', true);
+
+    data_set.set_input();
+    data_set.set_column_use(0, DataSet::VariableUse::Target);
+
+    const Index                      input_variables_number  = data_set.get_input_variables_number();
+    const Index                      target_variables_number = data_set.get_target_variables_number();
+    const Tensor<DataSet::Column, 1> columns                 = data_set.get_columns();
+
+    PrintColumnInfo(columns);
+    PrintDataset(data_set);
+
+    // Neural network
+    NeuralNetwork neural_network(NeuralNetwork::ProjectType::Classification, {input_variables_number, 50, target_variables_number});
+
+    PerceptronLayer* perceptron_layer_pointer = neural_network.get_first_perceptron_layer_pointer();
+    perceptron_layer_pointer->set_activation_function("RectifiedLinear");
+
+    Tensor<Layer*, 1> layers_pointers = neural_network.get_trainable_layers_pointers();
+
+    for (Index i = 0; i < layers_pointers.size(); i++)
+    {
+      std::cout << "Layer "    << i << ": "                             << std::endl;
+      std::cout << "   Type: " << layers_pointers(i)->get_type_string() << std::endl;
+
+      if (layers_pointers(i)->get_type_string() == "Perceptron")
+        std::cout << "   Activation: " << static_cast<PerceptronLayer*>(layers_pointers(i))->write_activation_function() << std::endl;
+      if (layers_pointers(i)->get_type_string() == "Probabilistic")
+        std::cout << "   Activation: " << static_cast<ProbabilisticLayer*>(layers_pointers(i))->write_activation_function() << std::endl;
+    }
+
+    // Training strategy
+
+    TrainingStrategy training_strategy(&neural_network, &data_set);
+
+    training_strategy.set_loss_method(TrainingStrategy::LossMethod::CROSS_ENTROPY_ERROR);
+    training_strategy.set_optimization_method(TrainingStrategy::OptimizationMethod::ADAPTIVE_MOMENT_ESTIMATION);
+    training_strategy.set_display_period(100);
+    training_strategy.set_maximum_epochs_number(1000);
+
+    training_strategy.perform_training();
+
+    // Testing analysis
+    const TestingAnalysis  testing_analysis(&neural_network, &data_set);
+    const Tensor<Index, 2> confusion                     = testing_analysis.calculate_confusion();
+    const Tensor<type, 1>  multiple_classification_tests = testing_analysis.calculate_multiple_classification_tests();
+
+    std::cout << "Confusion matrix: "                                              << std::endl;
+    std::cout << confusion                                                         << std::endl;
+    std::cout << "Accuracy: " << multiple_classification_tests(0)*type(100) << "%" << std::endl;
+    std::cout << "Error: "    << multiple_classification_tests(1)*type(100) << "%" << std::endl;
+
+    return 0;
+  }
+  catch(const std::exception& e)
+  {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
+}
