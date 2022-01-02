@@ -1,1 +1,0 @@
-/usr/bin/c++  -fopenmp -fopenmp -rdynamic CMakeFiles/simple_approximation.dir/main.cpp.o -o simple_approximation  ../../opennn/libopennn.a 
