@@ -19,7 +19,15 @@
 
 // OpenNN includes
 
-#include "../../opennn/opennn.h"
+#include "opennn/opennn/opennn.h"
+
+static std::string GetCWD()
+{
+  static const std::string APP_NAME{"civ_impact"};
+  static const size_t      NAME_LENGTH = APP_NAME.size();
+  std::string full_path{realpath("/proc/self/exe", NULL)};
+  return full_path.substr(0, full_path.size() - ( NAME_LENGTH + 1));
+}
 
 using namespace OpenNN;
 using namespace std;
@@ -29,13 +37,13 @@ int main(void)
 {
     try
     {
-        cout << "OpenNN. Simple Function Regression Example." << endl;
+        cout << "Computing Civilizational Impact." << endl;
 
         srand(static_cast<unsigned>(time(nullptr)));
 
         // Data set
-
-        DataSet data_set("../data/simple_function_regression.csv", ';', true);
+        std::string datapath = GetCWD() + "/data/civ_impact_data.csv";
+        DataSet data_set(datapath, ';', true);
 
         data_set.split_samples_random();
 
@@ -93,7 +101,7 @@ int main(void)
 
         return 1;
     }
-}  
+}
 
 
 // OpenNN: Open Neural Networks Library.

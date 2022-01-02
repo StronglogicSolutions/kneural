@@ -12,4 +12,4 @@ if(UNIX)
 endif()
 
 project(kneural_apps)
-add_subdirectory(simple_approximation)
+add_subdirectory(civ_impact)

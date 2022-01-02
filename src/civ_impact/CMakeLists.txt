@@ -8,11 +8,10 @@ if(UNIX)
 	set(PROJECT_LINK_LIBS ${CMAKE_SOURCE_DIR}/Release/opennn/libopennn.a)
 endif()
 
-if(WIN32)
-	set(PROJECT_LINK_LIBS ../../opennn/Release/opennn)
-endif()
-
 add_executable(civ_impact main.cpp)
 
 target_link_libraries(civ_impact PUBLIC opennn)
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+  "../../third_party"
+)
