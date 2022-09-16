@@ -17,6 +17,8 @@ static std::string GetCWD()
   return full_path.substr(0, full_path.size() - ( NAME_LENGTH + 1));
 }
 
+static const std::string input_path = GetCWD() + "/data/file.csv";
+
 using namespace OpenNN;
 using namespace Eigen;
 
@@ -57,7 +59,17 @@ exec_args(int argc, char* argv[])
     if (arg.find("--input=") != arg.npos)
       input = arg.substr(8);
   }
-  has_data = !(input.empty());
+  if (!input.empty())
+    append();
+}
+
+private:
+
+void append() const
+{
+  std::ofstream outfile;
+  outfile.open(input_path, std::ios_base::app);
+  outfile << input;
 }
 
 std::string input;
@@ -71,10 +83,7 @@ int main(int argc, char** argv)
   try
   {
     std::cout << "Computing Civilizational Impact." << std::endl;
-
-    std::string datapath = (args.has_data) ? args.input : GetCWD() + "/data/civ_impact_data.csv";
-    DataSet     data_set(datapath, ',', true);
-
+    DataSet data_set(input_path, ',', true);
     data_set.set_input();
     data_set.set_column_use(0, DataSet::VariableUse::Target);
 
