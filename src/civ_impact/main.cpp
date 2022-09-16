@@ -8,6 +8,7 @@
 
 #include "opennn/opennn/opennn.h"
 
+
 static std::string GetCWD()
 {
   static const std::string APP_NAME{"civ_impact"};
@@ -46,13 +47,32 @@ static void PrintDataset(const DataSet& data_set)
   std::cout << "Target variables number: " << data_set.get_target_variables_number() << std::endl;
 }
 
+struct exec_args
+{
+exec_args(int argc, char* argv[])
+{
+  for (int i = 0; i < argc; i++)
+  {
+    std::string arg{argv[i]};
+    if (arg.find("--input=") != arg.npos)
+      input = arg.substr(8);
+  }
+  has_data = !(input.empty());
+}
+
+std::string input;
+bool        has_data{false};
+};
+
 int main(int argc, char** argv)
 {
+  exec_args args{argc, argv};
+
   try
   {
     std::cout << "Computing Civilizational Impact." << std::endl;
 
-    std::string datapath = GetCWD() + "/data/civ_impact_data.csv";
+    std::string datapath = (args.has_data) ? args.input : GetCWD() + "/data/civ_impact_data.csv";
     DataSet     data_set(datapath, ',', true);
 
     data_set.set_input();
@@ -104,6 +124,9 @@ int main(int argc, char** argv)
     std::cout << confusion                                                         << std::endl;
     std::cout << "Accuracy: " << multiple_classification_tests(0)*type(100) << "%" << std::endl;
     std::cout << "Error: "    << multiple_classification_tests(1)*type(100) << "%" << std::endl;
+
+    neural_network.save("./results.xml");
+    neural_network.save_expression_c("./results.txt");
 
     return 0;
   }
