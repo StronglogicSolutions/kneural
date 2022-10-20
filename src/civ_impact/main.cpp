@@ -6,7 +6,7 @@
 #include <time.h>
 #include <omp.h>
 
-#include "opennn/opennn/opennn.h"
+#include <opennn/opennn/opennn.h>
 
 
 static std::string GetCWD()
