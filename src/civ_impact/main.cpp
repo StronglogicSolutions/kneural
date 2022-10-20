@@ -19,7 +19,7 @@ static std::string GetCWD()
 
 static const std::string input_path = GetCWD() + "/data/file.csv";
 
-using namespace OpenNN;
+using namespace opennn;
 using namespace Eigen;
 
 static void PrintColumnInfo(const Tensor<DataSet::Column, 1>& columns)
@@ -29,15 +29,15 @@ static void PrintColumnInfo(const Tensor<DataSet::Column, 1>& columns)
     std::cout << "Column " << i << ": "         << std::endl;
     std::cout << "   Name: " << columns(i).name << std::endl;
 
-    if (columns(i).column_use == OpenNN::DataSet::VariableUse::Input)
+    if (columns(i).column_use == opennn::DataSet::VariableUse::Input)
       std::cout << "   Use: input" << std::endl;
     else
-    if (columns(i).column_use == OpenNN::DataSet::VariableUse::Target)
+    if (columns(i).column_use == opennn::DataSet::VariableUse::Target)
       std::cout << "   Use: target" << std::endl;
     else
-    if (columns(i).column_use == OpenNN::DataSet::VariableUse::UnusedVariable)
+    if (columns(i).column_use == opennn::DataSet::VariableUse::Unused)
       std::cout << "   Use: unused" << std::endl;
-    if (columns(i).type == OpenNN::DataSet::ColumnType::Categorical)
+    if (columns(i).type == opennn::DataSet::ColumnType::Categorical)
       std::cout << "   Categories: " << columns(i).categories << std::endl;
     std::cout << std::endl;
   }
