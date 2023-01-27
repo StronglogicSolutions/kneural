@@ -51,34 +51,89 @@ static void PrintDataset(const DataSet& data_set)
 
 struct exec_args
 {
+//---------------- cxr -----------------------
 exec_args(int argc, char* argv[])
 {
+  read_file();
+
   for (int i = 0; i < argc; i++)
   {
     std::string arg{argv[i]};
     if (arg.find("--input=") != arg.npos)
-      input = arg.substr(8);
+    {
+      input = extract(arg.substr(8));
+      break;
+    }
   }
+
   if (!input.empty())
+  {
+    std::cout << "Input         is: " << input << std::endl;
+    std::cout << "Before appending: " << file  << std::endl;
     append();
+    std::cout << "After  appending: " << file  << std::endl;
+    save();
+  }
+}
+//--------------------------------------------
+std::string
+extract(const std::string& s) const
+{
+  size_t pos;
+  if      (pos = s.find('\n');  pos != s.npos)
+    return s.substr(pos + 1);
+  else if (pos = s.find("\\n"); pos != s.npos)
+    return s.substr(pos + 2);
+  return s;
+}
+//--------------------------------------------
+bool
+ready() const
+{
+  return (!file.empty());
 }
 
 private:
 
-void append() const
+void
+read_file()
 {
+  std::stringstream ss;
+  std::ifstream     infile;
+  infile.open(input_path, std::ios_base::app);
+  ss << infile.rdbuf();
+  file = ss.str();
+}
+//--------------------------------------------
+void
+append()
+{
+  if (file.empty())
+    file = input;
+  else
+    file += '\n' + input;
+}
+//--------------------------------------------
+void
+save() const
+{
+  std::cout << "Saving..." << std::endl;
   std::ofstream outfile;
-  outfile.open(input_path, std::ios_base::app);
-  outfile << input;
+  outfile.open(input_path);
+  outfile << file;
 }
 
 std::string input;
-bool        has_data{false};
+std::string file;
 };
 
+//--------------------------------------------
 int main(int argc, char** argv)
 {
   exec_args args{argc, argv};
+
+  if (!args.ready())
+    return 1;
 
   try
   {
@@ -113,8 +168,6 @@ int main(int argc, char** argv)
         std::cout << "   Activation: " << static_cast<ProbabilisticLayer*>(layers_pointers(i))->write_activation_function() << std::endl;
     }
 
-    // Training strategy
-
     TrainingStrategy training_strategy(&neural_network, &data_set);
 
     training_strategy.set_loss_method(TrainingStrategy::LossMethod::CROSS_ENTROPY_ERROR);
@@ -124,7 +177,6 @@ int main(int argc, char** argv)
 
     training_strategy.perform_training();
 
-    // Testing analysis
     const TestingAnalysis  testing_analysis(&neural_network, &data_set);
     const Tensor<Index, 2> confusion                     = testing_analysis.calculate_confusion();
     const Tensor<type, 1>  multiple_classification_tests = testing_analysis.calculate_multiple_classification_tests();
