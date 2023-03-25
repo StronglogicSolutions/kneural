@@ -6,7 +6,8 @@
 #include <time.h>
 #include <omp.h>
 
-#include "opennn/opennn/opennn.h"
+#include <opennn/opennn/opennn.h>
+
 
 static std::string GetCWD()
 {
@@ -16,7 +17,9 @@ static std::string GetCWD()
   return full_path.substr(0, full_path.size() - ( NAME_LENGTH + 1));
 }
 
-using namespace OpenNN;
+static const std::string input_path = GetCWD() + "/data/file.csv";
+
+using namespace opennn;
 using namespace Eigen;
 
 static void PrintColumnInfo(const Tensor<DataSet::Column, 1>& columns)
@@ -26,15 +29,15 @@ static void PrintColumnInfo(const Tensor<DataSet::Column, 1>& columns)
     std::cout << "Column " << i << ": "         << std::endl;
     std::cout << "   Name: " << columns(i).name << std::endl;
 
-    if (columns(i).column_use == OpenNN::DataSet::VariableUse::Input)
+    if (columns(i).column_use == opennn::DataSet::VariableUse::Input)
       std::cout << "   Use: input" << std::endl;
     else
-    if (columns(i).column_use == OpenNN::DataSet::VariableUse::Target)
+    if (columns(i).column_use == opennn::DataSet::VariableUse::Target)
       std::cout << "   Use: target" << std::endl;
     else
-    if (columns(i).column_use == OpenNN::DataSet::VariableUse::UnusedVariable)
+    if (columns(i).column_use == opennn::DataSet::VariableUse::Unused)
       std::cout << "   Use: unused" << std::endl;
-    if (columns(i).type == OpenNN::DataSet::ColumnType::Categorical)
+    if (columns(i).type == opennn::DataSet::ColumnType::Categorical)
       std::cout << "   Categories: " << columns(i).categories << std::endl;
     std::cout << std::endl;
   }
@@ -46,15 +49,96 @@ static void PrintDataset(const DataSet& data_set)
   std::cout << "Target variables number: " << data_set.get_target_variables_number() << std::endl;
 }
 
+struct exec_args
+{
+//---------------- cxr -----------------------
+exec_args(int argc, char* argv[])
+{
+  read_file();
+
+  for (int i = 0; i < argc; i++)
+  {
+    std::string arg{argv[i]};
+    if (arg.find("--input=") != arg.npos)
+    {
+      input = extract(arg.substr(8));
+      break;
+    }
+  }
+
+  if (!input.empty())
+  {
+    std::cout << "Input         is: " << input << std::endl;
+    std::cout << "Before appending: " << file  << std::endl;
+    append();
+    std::cout << "After  appending: " << file  << std::endl;
+    save();
+  }
+}
+//--------------------------------------------
+std::string
+extract(const std::string& s) const
+{
+  size_t pos;
+  if      (pos = s.find('\n');  pos != s.npos)
+    return s.substr(pos + 1);
+  else if (pos = s.find("\\n"); pos != s.npos)
+    return s.substr(pos + 2);
+  return s;
+}
+//--------------------------------------------
+bool
+ready() const
+{
+  return (!file.empty());
+}
+
+private:
+
+void
+read_file()
+{
+  std::stringstream ss;
+  std::ifstream     infile;
+  infile.open(input_path, std::ios_base::app);
+  ss << infile.rdbuf();
+  file = ss.str();
+}
+//--------------------------------------------
+void
+append()
+{
+  if (file.empty())
+    file = input;
+  else
+    file += '\n' + input;
+}
+//--------------------------------------------
+void
+save() const
+{
+  std::cout << "Saving..." << std::endl;
+  std::ofstream outfile;
+  outfile.open(input_path);
+  outfile << file;
+}
+
+std::string input;
+std::string file;
+};
+
+//--------------------------------------------
 int main(int argc, char** argv)
 {
+  exec_args args{argc, argv};
+
+  if (!args.ready())
+    return 1;
+
   try
   {
     std::cout << "Computing Civilizational Impact." << std::endl;
-
-    std::string datapath = GetCWD() + "/data/civ_impact_data.csv";
-    DataSet     data_set(datapath, ',', true);
-
+    DataSet data_set(input_path, ',', true);
     data_set.set_input();
     data_set.set_column_use(0, DataSet::VariableUse::Target);
 
@@ -84,8 +168,6 @@ int main(int argc, char** argv)
         std::cout << "   Activation: " << static_cast<ProbabilisticLayer*>(layers_pointers(i))->write_activation_function() << std::endl;
     }
 
-    // Training strategy
-
     TrainingStrategy training_strategy(&neural_network, &data_set);
 
     training_strategy.set_loss_method(TrainingStrategy::LossMethod::CROSS_ENTROPY_ERROR);
@@ -95,7 +177,6 @@ int main(int argc, char** argv)
 
     training_strategy.perform_training();
 
-    // Testing analysis
     const TestingAnalysis  testing_analysis(&neural_network, &data_set);
     const Tensor<Index, 2> confusion                     = testing_analysis.calculate_confusion();
     const Tensor<type, 1>  multiple_classification_tests = testing_analysis.calculate_multiple_classification_tests();
@@ -104,6 +185,9 @@ int main(int argc, char** argv)
     std::cout << confusion                                                         << std::endl;
     std::cout << "Accuracy: " << multiple_classification_tests(0)*type(100) << "%" << std::endl;
     std::cout << "Error: "    << multiple_classification_tests(1)*type(100) << "%" << std::endl;
+
+    neural_network.save("./results.xml");
+    neural_network.save_expression_c("./results.txt");
 
     return 0;
   }
